@@ -1,17 +1,49 @@
-# iyad_alquran
+# Iyad Quran: Feature-Rich Religious and Productivity App
 
-A new Flutter project.
+A feature-rich mobile application designed for spiritual productivity, featuring dynamic text-rendering, an offline daily productivity planner (Khatma Planner), and a comprehensive Islamic supplication database. Built using Flutter and integrated with Supabase for cloud features, alongside SQLite for robust offline capabilities.
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## Features
 
-A few resources to get you started if this is your first Flutter project:
+- **Dynamic Text Rendering:** Optimized for smooth rendering of Quranic scripts and text layouts.
+- **Offline Khatma Planner:** A personalized daily productivity planner that works entirely offline, allowing users to track progress seamlessly.
+- **Supplication Database:** A structured, local database containing authentic Islamic supplications.
+- **Data Persistence:** Utilizes local caching to maintain user states, progress, and preferences across application sessions.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+---
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Tech Stack
+
+- **Frontend:** Flutter (Dart).
+- **Backend and Cloud:** Supabase.
+- **Local Database:** SQLite (sqflite package).
+- **State and Preferences:** SharedPreferences (for local key-value caching).
+- **Version Control:** Git and GitHub.
+
+---
+
+## Architecture and Local-First Strategy
+
+The application employs an offline-first data synchronization architecture to ensure uninterrupted usability:
+- **Local SQLite Storage:** Pre-loaded and user-generated data are stored locally using sqflite, guaranteeing sub-millisecond query responses without network dependency.
+- **SharedPreferences Caching:** Lightweight user configurations, daily planner states, and last-read positions are cached instantly.
+- **Supabase Integration:** Used for secure cloud synchronization, enabling cross-device backup when a network connection is available.
+
+---
+
+
+## Screenshots and Demo
+
+| Home and Last Read | Quran Search and Index | Dynamic Text Rendering |
+| --- | --- | --- |
+| ![Home and Last Read](./Screenshots/home.png) | ![Quran Search and Index](./Screenshots/search.png) | ![Dynamic Text Rendering](./Screenshots/quran.png) |
+
+> Note: Replace the placeholder links above with actual screenshots or GIFs of your application to showcase your UI/UX and data-rendering capabilities.
+
+---
+
+## Setup and Installation
+
+1. **Clone the repository:**
+```bash   git clone [https://github.com/MoaazAlkehelat/](https://github.com/MoaazAlkehelat/)[Your-Repository-Name].git
