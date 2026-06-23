@@ -37,9 +37,8 @@ The application employs an offline-first data synchronization architecture to en
 
 | Home and Last Read | Quran Search and Index | Dynamic Text Rendering |
 | --- | --- | --- |
-| ![Home and Last Read](./Screenshots/home.png) | ![Quran Search and Index](./Screenshots/search.png) | ![Dynamic Text Rendering](./Screenshots/quran.png) |
+| ![Home and Last Read](./screenshots/home.png) | ![Quran Search and Index](./screenshots/search.png) | ![Dynamic Text Rendering](./screenshots/quran.png) |
 
-> Note: Replace the placeholder links above with actual screenshots or GIFs of your application to showcase your UI/UX and data-rendering capabilities.
 
 ---
 
