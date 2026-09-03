@@ -256,29 +256,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showAbout() {
-    showAboutDialog(
+    // Force a light theme for this dialog so "عن التطبيق" stays white even in
+    // dark mode.
+    showDialog<void>(
       context: context,
-      applicationName: 'إياد القرآن',
-      applicationVersion: '1.0.0',
-      applicationIcon: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: AppColors.teal,
-          borderRadius: BorderRadius.circular(16),
+      builder: (_) => Theme(
+        data: ThemeData.light(),
+        child: AboutDialog(
+          applicationName: 'إياد القرآن',
+          applicationVersion: '1.0.0',
+          applicationIcon: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.teal,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(Icons.menu_book_rounded,
+                color: Colors.black, size: 34),
+          ),
+          children: [
+            const SizedBox(height: 14),
+            Text(
+              'إياد القرآن 🌿\n\n'
+              'تطبيق قرآني صُمم ليكون صدقة جارية عن روح إياد النواجحة، '
+              'ورفيقًا يوميًا يساعد المسلم على قراءة القرآن الكريم والأذكار '
+              'والدعاء بسهولة وطمأنينة.',
+              textDirection: TextDirection.rtl,
+              style:
+                  AppTextStyles.bodyAr(color: Colors.black87).copyWith(height: 1.8),
+            ),
+          ],
         ),
-        child: const Icon(Icons.menu_book_rounded, color: Colors.black, size: 34),
       ),
-      children: [
-        const SizedBox(height: 14),
-        Text(
-          'إياد القرآن 🌿\n\n'
-          'تطبيق قرآني صُمم ليكون صدقة جارية عن روح إياد النواجحة، '
-          'ورفيقًا يوميًا يساعد المسلم على قراءة القرآن الكريم والأذكار '
-          'والدعاء بسهولة وطمأنينة.',
-          textDirection: TextDirection.rtl,
-          style: AppTextStyles.bodyAr(color: Colors.black87).copyWith(height: 1.8),
-        ),
-      ],
     );
   }
 }

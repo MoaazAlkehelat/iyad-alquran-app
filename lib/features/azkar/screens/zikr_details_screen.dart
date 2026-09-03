@@ -16,48 +16,44 @@ class ZikrDetailsScreen extends StatefulWidget {
 }
 
 class _ZikrDetailsScreenState extends State<ZikrDetailsScreen> {
-  late List<int> currentCounts;
+  /// How many times each zikr has been recited so far. Starts at zero.
+  late List<int> counts;
 
   @override
   void initState() {
     super.initState();
-
-    currentCounts = widget.category.azkar
-        .map((e) => e.count)
-        .toList();
+    counts = List<int>.filled(widget.category.azkar.length, 0);
   }
 
-  void decrement(int index) {
-    if (currentCounts[index] > 0) {
-      setState(() {
-        currentCounts[index]--;
-      });
+  void _tasbih(int index) {
+    final target = widget.category.azkar[index].count;
+    if (counts[index] < target) {
+      setState(() => counts[index]++);
     }
   }
+
+  void _reset(int index) => setState(() => counts[index] = 0);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.category.category,style: TextStyle(color: Colors.white),),
+        title: Text(widget.category.category,
+            style: const TextStyle(color: Colors.white)),
         centerTitle: true,
       ),
-
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: widget.category.azkar.length,
-
         itemBuilder: (context, index) {
           final zikr = widget.category.azkar[index];
-
-          final remaining = currentCounts[index];
-
-          final progress =
-              (zikr.count - remaining) / zikr.count;
+          final done = counts[index];
+          final target = zikr.count;
+          final progress = target == 0 ? 0.0 : (done / target).clamp(0.0, 1.0);
+          final finished = done >= target;
 
           return Container(
             margin: const EdgeInsets.only(bottom: 20),
-
             decoration: BoxDecoration(
               color: AppColors.forestGreen,
               borderRadius: BorderRadius.circular(24),
@@ -69,106 +65,91 @@ class _ZikrDetailsScreenState extends State<ZikrDetailsScreen> {
                 ),
               ],
             ),
-
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-
-                  /// الذكر
-                  Text(
-                    zikr.text,
-                    textAlign: TextAlign.center,
-                    textDirection: TextDirection.rtl,
-                    style: TextStyle(fontFamily: 'Amiri', 
-                      height: 2,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                      color: Colors.white,
-                      letterSpacing: 0,
-                    ),
-                  ),
-
-                  const SizedBox(height: 25),
-
-                  /// Progress
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: LinearProgressIndicator(
-                      color: AppColors.teal,
-                      value: progress,
-                      minHeight: 10,
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  Row(
-                    mainAxisAlignment:
-                    MainAxisAlignment.spaceBetween,
-                    children: [
-
-                      /// العدد المتبقي
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 12,
-                        ),
-
-                        decoration: BoxDecoration(
-                          borderRadius:
-                          BorderRadius.circular(18),
-                          color: AppColors.teal
-                              .withValues(alpha: 0.12),
-                        ),
-
-                        child: Text(
-                          "$remaining / ${zikr.count}",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color:
-                            Colors.white,
-                          ),
-                        ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(24),
+              onTap: finished ? null : () => _tasbih(index),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      zikr.text,
+                      textAlign: TextAlign.center,
+                      textDirection: TextDirection.rtl,
+                      style: const TextStyle(
+                        fontFamily: 'Amiri',
+                        height: 2,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                        color: Colors.white,
                       ),
-
-                      /// زر التسبيح
-                      ElevatedButton(
-                        onPressed: remaining == 0
-                            ? null
-                            : () => decrement(index),
-
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.teal.withValues(alpha: 0.12),
-
-                          padding:
-                          const EdgeInsets.symmetric(
-                            horizontal: 28,
-                            vertical: 14,
-                          ),
-
-                          shape: RoundedRectangleBorder(
-                            borderRadius:
-                            BorderRadius.circular(18),
-                          ),
-                        ),
-
-                        child: Text(
-                          remaining == 0
-                              ? "تم ✓"
-                              : "تسبيح",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                          ),
-                        ),
+                    ),
+                    const SizedBox(height: 25),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: LinearProgressIndicator(
+                        color: AppColors.teal,
+                        backgroundColor: Colors.white12,
+                        value: progress,
+                        minHeight: 10,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 12),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(18),
+                            color: AppColors.teal.withValues(alpha: 0.12),
+                          ),
+                          child: Text(
+                            '$done / $target',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            if (done > 0)
+                              IconButton(
+                                onPressed: () => _reset(index),
+                                icon: const Icon(Icons.refresh_rounded,
+                                    color: Colors.white54),
+                                tooltip: 'إعادة',
+                              ),
+                            ElevatedButton(
+                              onPressed:
+                                  finished ? null : () => _tasbih(index),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    AppColors.teal.withValues(alpha: 0.16),
+                                disabledBackgroundColor:
+                                    Colors.white.withValues(alpha: 0.06),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 28, vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                              ),
+                              child: Text(
+                                finished ? 'تم ✓' : 'تسبيح',
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 18),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           );

@@ -136,16 +136,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: AppSpace.sm),
-                  Text('إياد القرآن • رفيقك إلى كتاب الله',
-                      style: AppTextStyles.caption
-                          .copyWith(color: AppColors.blueGreen, fontSize: 13)),
-                  const SizedBox(height: AppSpace.xs),
+                  Text('إياد القرآن',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.caption.copyWith(
+                          color: AppColors.blueGreen,
+                          fontSize: 13,
+                          letterSpacing: 0.5)),
+                  const SizedBox(height: AppSpace.md),
                   Text(
                     (_username == null || _username!.isEmpty)
                         ? 'السلام عليكم'
                         : 'أهلاً، $_username',
-                    style: AppTextStyles.display,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.display.copyWith(height: 1.3),
                   ),
+                  const SizedBox(height: AppSpace.xs),
+                  Text('رفيقك إلى كتاب الله',
+                      style: AppTextStyles.caption.copyWith(fontSize: 13)),
                   const SizedBox(height: AppSpace.xl),
                   const SectionHeader('متابعة القراءة'),
                   _lastReadCard(),

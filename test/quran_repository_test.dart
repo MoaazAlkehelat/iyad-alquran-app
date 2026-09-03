@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:iyad_alquran/core/constants/quran_constants.dart';
+import 'package:iyad_alquran/core/utils/arabic.dart';
 import 'package:iyad_alquran/features/quran/data/quran_repository.dart';
 
 void main() {
@@ -18,6 +19,34 @@ void main() {
     expect(b.isSurahStart, isTrue);
     expect(b.showBasmala, isFalse); // surah 1: basmala IS ayah 1
     expect(b.ayat.first.ayah, 1);
+  });
+
+  test('the basmala prefix is stripped from verse 1 (except Al-Fatiha)', () {
+    String v1(int surah) => normalizeArabic(repo
+        .pageContent(repo.pageForSurah(surah))
+        .blocks
+        .firstWhere((b) => b.surahNumber == surah)
+        .ayat
+        .first
+        .text);
+
+    const basmala = 'بسم الله الرحمن الرحيم';
+    // Al-Fatiha keeps it — it IS ayah 1.
+    expect(v1(1), basmala);
+    // Al-Baqarah 1 becomes just the letters.
+    expect(v1(2), 'الم');
+    // Al-Ikhlas 1 drops the basmala, keeps its own words.
+    expect(v1(112).startsWith(basmala), isFalse);
+    expect(v1(112).startsWith('قل هو الله احد'), isTrue);
+    // At-Tawbah is unaffected (never had a basmala).
+    expect(v1(9).startsWith(basmala), isFalse);
+    expect(v1(9).startsWith('براه'), isTrue); // normalizeArabic drops the hamza
+  });
+
+  test('surah names carry harakat', () {
+    expect(repo.surahNameAr(1), 'الفَاتِحَة');
+    expect(repo.surahNameAr(113), 'الفَلَق');
+    expect(repo.surahNameAr(114), 'النَّاس');
   });
 
   test('page 187 starts At-Tawbah with no basmala', () {

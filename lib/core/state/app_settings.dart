@@ -54,6 +54,20 @@ class AppSettings extends ChangeNotifier {
   Future<void> bumpFontScale(double delta) =>
       setReadingFontScale(_readingFontScale + delta);
 
+  /// Update the scale for a live gesture (pinch) without touching disk.
+  void previewReadingFontScale(double value) {
+    final v = value.clamp(minFontScale, maxFontScale);
+    if (_readingFontScale == v) return;
+    _readingFontScale = v;
+    notifyListeners();
+  }
+
+  /// Persist whatever the current scale is (call once the gesture ends).
+  Future<void> commitReadingFontScale() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_fontScaleKey, _readingFontScale);
+  }
+
   Future<void> setLineHeight(double value) async {
     final v = value.clamp(minLineHeight, maxLineHeight);
     if (_lineHeight == v) return;

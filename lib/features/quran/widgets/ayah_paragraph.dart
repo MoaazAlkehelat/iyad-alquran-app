@@ -7,17 +7,22 @@ import 'reader_palette.dart';
 
 /// One justified, right-to-left paragraph for a run of ayat from a single surah.
 class AyahParagraph extends StatelessWidget {
-  final SurahBlock block;
+  final List<AyahEntity> ayat;
   final ReaderPalette palette;
   final double fontScale;
   final double lineHeight;
 
+  /// When set, that ayah's text gets a faint highlight (used on arrival from
+  /// search so the searched ayah stands out).
+  final int? highlightAyah;
+
   const AyahParagraph({
     super.key,
-    required this.block,
+    required this.ayat,
     required this.palette,
     required this.fontScale,
     required this.lineHeight,
+    this.highlightAyah,
   });
 
   @override
@@ -25,8 +30,15 @@ class AyahParagraph extends StatelessWidget {
     final double base = 22 * fontScale;
 
     final spans = <InlineSpan>[];
-    for (final a in block.ayat) {
-      spans.add(TextSpan(text: '${a.text} '));
+    for (final a in ayat) {
+      spans.add(TextSpan(
+        text: '${a.text} ',
+        style: a.ayah == highlightAyah
+            ? TextStyle(
+                backgroundColor: palette.accent.withValues(alpha: 0.16),
+              )
+            : null,
+      ));
       spans.add(
         TextSpan(
           // U+06DD (end of ayah) shapes as a rosette enclosing the digits

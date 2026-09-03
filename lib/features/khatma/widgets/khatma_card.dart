@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/quran_constants.dart';
 import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/arabic.dart';
@@ -62,6 +63,23 @@ class KhatmaCardState extends State<KhatmaCard> {
     await reload();
   }
 
+  Future<void> _recordProgress(KhatmaModel k) async {
+    final page = await showDialog<int>(
+      context: context,
+      builder: (_) => _RecordProgressDialog(current: k.currentPage),
+    );
+    if (page == null) return;
+    final newPage = page.clamp(1, kQuranPageCount);
+    await KhatmaService.saveKhatma(
+      k.copyWith(
+        currentPage: newPage,
+        completed: newPage >= kQuranPageCount,
+        lastReadDate: DateTime.now(),
+      ),
+    );
+    await reload();
+  }
+
   Future<void> _confirmReset() async {
     final ok = await showDialog<bool>(
       context: context,
@@ -103,6 +121,10 @@ class KhatmaCardState extends State<KhatmaCard> {
       ),
       builder: (_) => _KhatmaDetailsSheet(
         khatma: k,
+        onRecord: () {
+          Navigator.pop(context);
+          _recordProgress(k);
+        },
         onEdit: () {
           Navigator.pop(context);
           _createOrEdit(existing: k);
@@ -339,11 +361,13 @@ class _PaceChip extends StatelessWidget {
 
 class _KhatmaDetailsSheet extends StatelessWidget {
   final KhatmaModel khatma;
+  final VoidCallback onRecord;
   final VoidCallback onEdit;
   final VoidCallback onReset;
 
   const _KhatmaDetailsSheet({
     required this.khatma,
+    required this.onRecord,
     required this.onEdit,
     required this.onReset,
   });
@@ -386,6 +410,22 @@ class _KhatmaDetailsSheet extends StatelessWidget {
               if (perTarget != null)
                 _row('للوصول للهدف', '${toArabicDigits(perTarget)} صفحة/يوم'),
               const SizedBox(height: AppSpace.lg),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.teal,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(borderRadius: AppRadius.fieldR),
+                  ),
+                  onPressed: onRecord,
+                  icon: const Icon(Icons.checklist_rounded, size: 18),
+                  label: Text('سجّل قراءتك (داخل التطبيق أو من المصحف)',
+                      style: AppTextStyles.bodyAr(weight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: AppSpace.sm),
               Row(
                 children: [
                   Expanded(
@@ -556,6 +596,115 @@ class _KhatmaDialogState extends State<_KhatmaDialog> {
                 child: Text(_targetDate == null ? 'اختر' : 'تغيير',
                     style: AppTextStyles.bodyAr(color: AppColors.teal)),
               ),
+            ],
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('إلغاء', style: AppTextStyles.bodyAr(color: Colors.white70)),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.teal, foregroundColor: Colors.black),
+          onPressed: _submit,
+          child: Text('حفظ', style: AppTextStyles.bodyAr(weight: FontWeight.bold)),
+        ),
+      ],
+    );
+  }
+}
+
+/// Lets the reader set the page they've reached — whether inside the app or by
+/// reading a physical mushaf and coming back.
+class _RecordProgressDialog extends StatefulWidget {
+  final int current;
+  const _RecordProgressDialog({required this.current});
+
+  @override
+  State<_RecordProgressDialog> createState() => _RecordProgressDialogState();
+}
+
+class _RecordProgressDialogState extends State<_RecordProgressDialog> {
+  late final TextEditingController _controller;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: '${widget.current}');
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _add(int pages) {
+    final v = (int.tryParse(_controller.text.trim()) ?? widget.current) + pages;
+    _controller.text = '${v.clamp(1, kQuranPageCount)}';
+  }
+
+  void _submit() {
+    final page = int.tryParse(_controller.text.trim());
+    if (page == null || page < 1 || page > kQuranPageCount) {
+      setState(() => _error = 'أدخل رقم صفحة بين ١ و ٦٠٤');
+      return;
+    }
+    Navigator.pop(context, page);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppColors.forestGreen,
+      shape: RoundedRectangleBorder(borderRadius: AppRadius.cardR),
+      title: Text('سجّل تقدّمك',
+          textDirection: TextDirection.rtl,
+          style: AppTextStyles.heading(color: Colors.white, fontSize: 18)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('وصلت إلى صفحة رقم:',
+              textDirection: TextDirection.rtl,
+              style: AppTextStyles.bodyAr(color: Colors.white70, fontSize: 13)),
+          const SizedBox(height: AppSpace.sm),
+          TextField(
+            controller: _controller,
+            keyboardType: TextInputType.number,
+            textDirection: TextDirection.rtl,
+            autofocus: true,
+            style: const TextStyle(color: Colors.white),
+            onSubmitted: (_) => _submit(),
+            decoration: InputDecoration(
+              errorText: _error,
+              filled: true,
+              fillColor: AppColors.background,
+              enabledBorder: OutlineInputBorder(
+                borderRadius: AppRadius.fieldR,
+                borderSide: const BorderSide(color: AppColors.teal),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: AppRadius.fieldR,
+                borderSide: const BorderSide(color: AppColors.blueGreen, width: 2),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpace.md),
+          Wrap(
+            spacing: AppSpace.sm,
+            children: [
+              for (final n in const [5, 10, 20])
+                ActionChip(
+                  label: Text('+${toArabicDigits(n)}',
+                      style: AppTextStyles.bodyAr(color: AppColors.teal, fontSize: 12)),
+                  backgroundColor: AppColors.teal.withValues(alpha: 0.12),
+                  side: BorderSide(color: AppColors.teal.withValues(alpha: 0.4)),
+                  onPressed: () => _add(n),
+                ),
             ],
           ),
         ],

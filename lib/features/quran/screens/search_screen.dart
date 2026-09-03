@@ -89,10 +89,28 @@ class _SearchScreenState extends State<SearchScreen> {
     });
   }
 
-  void _openReader(int page) {
+  void _openSurah(int surahId) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => ReaderScreen(initialPage: page)),
+      MaterialPageRoute(
+        builder: (_) => ReaderScreen(
+          initialPage: _repo.pageForSurah(surahId),
+          initialSurah: surahId,
+        ),
+      ),
+    );
+  }
+
+  void _openAyah(AyahSearchHit hit) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ReaderScreen(
+          initialPage: hit.page,
+          initialSurah: hit.surah,
+          initialAyah: hit.ayah,
+        ),
+      ),
     );
   }
 
@@ -123,7 +141,8 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _header() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpace.xl, AppSpace.xl, AppSpace.xl, AppSpace.md),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpace.xl, AppSpace.xl, AppSpace.xl, AppSpace.md),
       child: Column(
         children: [
           Text('ابحث في القرآن الكريم',
@@ -174,7 +193,8 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _stats() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpace.xl, AppSpace.lg, AppSpace.xl, 0),
+      padding:
+          const EdgeInsets.fromLTRB(AppSpace.xl, AppSpace.lg, AppSpace.xl, 0),
       child: Row(
         children: [
           _chip(toArabicDigits(kQuranSurahCount), 'سورة'),
@@ -258,7 +278,7 @@ class _SearchScreenState extends State<SearchScreen> {
     return AppCard(
       padding: const EdgeInsets.symmetric(
           horizontal: AppSpace.lg, vertical: AppSpace.md),
-      onTap: () => _openReader(_repo.pageForSurah(surah.id)),
+      onTap: () => _openSurah(surah.id),
       child: Row(
         children: [
           Container(
@@ -300,7 +320,7 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget _ayahRow(AyahSearchHit hit) {
     return AppCard(
       padding: const EdgeInsets.all(AppSpace.lg),
-      onTap: () => _openReader(hit.page),
+      onTap: () => _openAyah(hit),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -320,7 +340,8 @@ class _SearchScreenState extends State<SearchScreen> {
                   textDirection: TextDirection.rtl,
                   style: AppTextStyles.caption.copyWith(fontSize: 12)),
               const SizedBox(width: 6),
-              Text('• آية ${toArabicDigits(hit.ayah)} • صفحة ${toArabicDigits(hit.page)}',
+              Text(
+                  '• آية ${toArabicDigits(hit.ayah)} • صفحة ${toArabicDigits(hit.page)}',
                   textDirection: TextDirection.rtl,
                   style: AppTextStyles.caption
                       .copyWith(fontSize: 12, color: Colors.white38)),

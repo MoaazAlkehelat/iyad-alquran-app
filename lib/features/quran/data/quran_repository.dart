@@ -2,6 +2,21 @@ import 'package:quran/quran.dart' as quran;
 
 import '../../../core/constants/quran_constants.dart';
 import '../../../core/utils/arabic.dart';
+import 'surah_names_ar.dart';
+
+/// The Tanzil "simple" text prepends the basmala (its first four words) to
+/// verse 1 of every surah except At-Tawbah. We render our own standalone
+/// basmala, so it's stripped from the ayah text — matched diacritic-insensitively.
+final String _normBasmala = normalizeArabic(quran.basmala);
+
+String _verseText(int surah, int verse) {
+  final t = quran.getVerse(surah, verse);
+  if (verse == 1 && surah != 1 && normalizeArabic(t).startsWith(_normBasmala)) {
+    final parts = t.trim().split(RegExp(r'\s+'));
+    if (parts.length > 4) return parts.sublist(4).join(' ');
+  }
+  return t;
+}
 
 /// A single ayah as an addressable entity. Powers both the reader and search.
 class AyahEntity {
@@ -87,7 +102,8 @@ class QuranRepository {
 
   int get pageCount => quran.totalPagesCount; // 604
 
-  String surahNameAr(int surahNumber) => quran.getSurahNameArabic(surahNumber);
+  String surahNameAr(int surahNumber) =>
+      kSurahNamesAr[surahNumber] ?? quran.getSurahNameArabic(surahNumber);
 
   bool isMakkah(int surahNumber) =>
       quran.getPlaceOfRevelation(surahNumber).toLowerCase().startsWith('makk');
@@ -117,7 +133,7 @@ class QuranRepository {
           AyahEntity(
             surah: surahNumber,
             ayah: v,
-            text: quran.getVerse(surahNumber, v),
+            text: _verseText(surahNumber, v),
             page: page,
             juz: quran.getJuzNumber(surahNumber, v),
             isSajda: quran.isSajdahVerse(surahNumber, v),
@@ -127,7 +143,7 @@ class QuranRepository {
       blocks.add(
         SurahBlock(
           surahNumber: surahNumber,
-          surahNameAr: quran.getSurahNameArabic(surahNumber),
+          surahNameAr: surahNameAr(surahNumber),
           revelation: quran.getPlaceOfRevelation(surahNumber),
           totalVerses: quran.getVerseCount(surahNumber),
           isSurahStart: isSurahStart,
