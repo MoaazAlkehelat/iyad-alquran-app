@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/constants/app_colors.dart';
 import 'package:iyad_alquran/data/services/azkar_service.dart';
@@ -27,7 +26,7 @@ class AzkarScreen extends StatelessWidget {
 
         title: Text(
           "الأذكار",
-          style: GoogleFonts.amiri(
+          style: TextStyle(fontFamily: 'Amiri', 
             fontSize: 28,
             fontWeight: FontWeight.bold,
             color: Colors.white,
@@ -58,7 +57,7 @@ class AzkarScreen extends StatelessWidget {
 
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.18),
+                  color: Colors.black.withValues(alpha: 0.18),
                   blurRadius: 10,
                   offset: const Offset(0, 5),
                 ),
@@ -97,7 +96,7 @@ class AzkarScreen extends StatelessWidget {
                         height: 55,
 
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.08),
+                          color: Colors.white.withValues(alpha: 0.08),
                           borderRadius:
                           BorderRadius.circular(18),
                         ),
@@ -117,7 +116,7 @@ class AzkarScreen extends StatelessWidget {
                           item.category,
                           textDirection: TextDirection.rtl,
 
-                          style: GoogleFonts.amiri(
+                          style: TextStyle(fontFamily: 'Amiri', 
                             fontSize: 24,
                             color: Colors.white,
                             fontWeight: FontWeight.bold,

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:iyad_alquran/core/constants/app_colors.dart';
-import 'package:iyad_alquran/core/theme/app_theme.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../data/models/azkar_category_model.dart';
 
@@ -66,7 +64,7 @@ class _ZikrDetailsScreenState extends State<ZikrDetailsScreen> {
               boxShadow: [
                 BoxShadow(
                   blurRadius: 10,
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   offset: const Offset(0, 4),
                 ),
               ],
@@ -84,7 +82,7 @@ class _ZikrDetailsScreenState extends State<ZikrDetailsScreen> {
                     zikr.text,
                     textAlign: TextAlign.center,
                     textDirection: TextDirection.rtl,
-                    style: GoogleFonts.amiri(
+                    style: TextStyle(fontFamily: 'Amiri', 
                       height: 2,
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
@@ -123,7 +121,7 @@ class _ZikrDetailsScreenState extends State<ZikrDetailsScreen> {
                           borderRadius:
                           BorderRadius.circular(18),
                           color: AppColors.teal
-                              .withOpacity(0.12),
+                              .withValues(alpha: 0.12),
                         ),
 
                         child: Text(
@@ -144,7 +142,7 @@ class _ZikrDetailsScreenState extends State<ZikrDetailsScreen> {
                             : () => decrement(index),
 
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.teal.withOpacity(0.12),
+                          backgroundColor: AppColors.teal.withValues(alpha: 0.12),
 
                           padding:
                           const EdgeInsets.symmetric(
