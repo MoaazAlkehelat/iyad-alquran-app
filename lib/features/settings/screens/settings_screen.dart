@@ -105,6 +105,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             _divider(),
             _fontSizeTile(settings),
+            _divider(),
+            _readerLayoutTile(settings),
           ]),
           const SizedBox(height: AppSpace.xl),
           const SectionHeader('الختمة'),
@@ -230,6 +232,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _readerLayoutTile(AppSettings settings) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpace.lg, vertical: AppSpace.sm),
+      child: Row(
+        children: [
+          const Icon(Icons.swap_vert_rounded, color: AppColors.teal, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text('اتجاه القراءة',
+                textDirection: TextDirection.rtl,
+                style: AppTextStyles.bodyAr(color: Colors.white, fontSize: 15)),
+          ),
+          SegmentedButton<ReaderLayout>(
+            segments: const [
+              ButtonSegment(
+                value: ReaderLayout.vertical,
+                icon: Icon(Icons.swap_vert_rounded, size: 18),
+                label: Text('عمودي'),
+              ),
+              ButtonSegment(
+                value: ReaderLayout.horizontal,
+                icon: Icon(Icons.swap_horiz_rounded, size: 18),
+                label: Text('أفقي'),
+              ),
+            ],
+            selected: {settings.readerLayout},
+            showSelectedIcon: false,
+            onSelectionChanged: (s) => settings.setReaderLayout(s.first),
+            style: SegmentedButton.styleFrom(
+              backgroundColor: AppColors.overlay,
+              foregroundColor: Colors.white70,
+              selectedBackgroundColor: AppColors.teal,
+              selectedForegroundColor: Colors.black,
+              textStyle: AppTextStyles.bodyAr(fontSize: 12),
+            ),
+          ),
         ],
       ),
     );

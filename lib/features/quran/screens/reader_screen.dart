@@ -7,6 +7,7 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/quran_constants.dart';
 import '../../../core/state/app_settings.dart';
+import '../../../core/theme/app_dimens.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/arabic.dart';
 import '../../../data/models/bookmark_model.dart';
@@ -20,6 +21,7 @@ import '../widgets/basmala.dart';
 import '../widgets/page_divider.dart';
 import '../widgets/pinch_to_scale.dart';
 import '../widgets/reader_chrome.dart';
+import '../widgets/reader_options_sheet.dart';
 import '../widgets/reader_palette.dart';
 import '../widgets/surah_header.dart';
 
@@ -65,6 +67,17 @@ class _ReaderScreenState extends State<ReaderScreen> {
   final _targetKey = GlobalKey();
   int? _highlightAyah;
   Timer? _highlightTimer;
+
+  /// Live pinch target (absolute font scale) while a two-finger gesture is in
+  /// flight, else null. Drives a compositor-only [Transform.scale] so the pinch
+  /// stays at 60fps; the real font scale (which reflows every page) is only
+  /// applied once, on gesture end.
+  final ValueNotifier<double?> _pinchTargetScale = ValueNotifier(null);
+
+  /// Only used in horizontal (page-flip) mode; created lazily so it can be
+  /// seeded with whatever page is currently being read (see [_syncPageController]).
+  PageController? _pageController;
+  ReaderLayout? _lastLayout;
 
   int get _initialIndex =>
       (widget.initialPage.clamp(1, kQuranPageCount)) - 1;
@@ -114,6 +127,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
     _highlightTimer?.cancel();
     _positionsListener.itemPositions.removeListener(_onScroll);
     _saveDebounce?.cancel();
+    _pinchTargetScale.dispose();
+    _pageController?.dispose();
     super.dispose();
   }
 
@@ -228,6 +243,38 @@ class _ReaderScreenState extends State<ReaderScreen> {
     }
   }
 
+  /// Called from [build] whenever the reading layout changes. When switching
+  /// into horizontal (page-flip) mode, (re)creates the [PageController] so it
+  /// opens on whatever page is currently being read — not wherever a stale
+  /// controller was last left. The previous controller (if any) is disposed a
+  /// frame later, once the [PageView] that held it has already been torn
+  /// down; disposing it synchronously here would race that teardown.
+  void _syncPageController(ReaderLayout layout) {
+    if (layout == _lastLayout) return;
+    if (layout == ReaderLayout.horizontal) {
+      final old = _pageController;
+      _pageController = PageController(initialPage: _currentPage - 1);
+      if (old != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
+      }
+    }
+    _lastLayout = layout;
+  }
+
+  /// Page-flip equivalent of [_onScroll]: a full page is always either fully
+  /// on screen or not, so there's no partial-scroll weighting to do — just
+  /// take the new page's first block.
+  void _onPageChanged(int index) {
+    final page = index + 1;
+    final first = _repo.pageContent(page).blocks.first;
+    setState(() {
+      _currentPage = page;
+      _topSurahName = first.surahNameAr;
+      _topJuz = first.ayat.first.juz;
+    });
+    _schedulePersist(page);
+  }
+
   void _schedulePersist(int page) {
     _saveDebounce?.cancel();
     _saveDebounce = Timer(const Duration(milliseconds: 450), () async {
@@ -314,10 +361,22 @@ class _ReaderScreenState extends State<ReaderScreen> {
     );
   }
 
+  void _openReaderOptions() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.forestGreen,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
+      ),
+      builder: (_) => const ReaderOptionsSheet(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<AppSettings>();
     final palette = ReaderPalette(settings.isDarkMode);
+    _syncPageController(settings.readerLayout);
 
     String? wird;
     final k = _khatma;
@@ -334,7 +393,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
         scrolledUnderElevation: 0,
         title: ReaderHeaderTitle(surahName: _topSurahName, juz: _topJuz),
         actions: [
-          _FontSizeButton(settings: settings),
           IconButton(
             visualDensity: VisualDensity.compact,
             tooltip: 'علامة مرجعية',
@@ -343,26 +401,26 @@ class _ReaderScreenState extends State<ReaderScreen> {
           ),
           IconButton(
             visualDensity: VisualDensity.compact,
-            tooltip: settings.isDarkMode ? 'الوضع النهاري' : 'الوضع الليلي',
-            onPressed: settings.toggleDarkMode,
-            icon: Icon(settings.isDarkMode
-                ? Icons.light_mode_rounded
-                : Icons.dark_mode_rounded),
+            tooltip: 'إعدادات القراءة',
+            onPressed: _openReaderOptions,
+            icon: const Icon(Icons.tune_rounded),
           ),
           const SizedBox(width: 4),
         ],
       ),
-      floatingActionButton: _AutoScrollControl(
-        active: _autoScroll,
-        speed: _autoSpeed,
-        speedVisible: _speedVisible,
-        onToggle: _toggleAutoScroll,
-        onRevealSpeed: _revealSpeed,
-        onSpeed: (v) {
-          setState(() => _autoSpeed = v);
-          _revealSpeed();
-        },
-      ),
+      floatingActionButton: settings.readerLayout == ReaderLayout.vertical
+          ? _AutoScrollControl(
+              active: _autoScroll,
+              speed: _autoSpeed,
+              speedVisible: _speedVisible,
+              onToggle: _toggleAutoScroll,
+              onRevealSpeed: _revealSpeed,
+              onSpeed: (v) {
+                setState(() => _autoSpeed = v);
+                _revealSpeed();
+              },
+            )
+          : null,
       body: Listener(
         // A finger on the page stops the auto-scroller.
         onPointerDown: (_) => _stopAutoScroll(),
@@ -370,31 +428,76 @@ class _ReaderScreenState extends State<ReaderScreen> {
           scale: settings.readingFontScale,
           min: AppSettings.minFontScale,
           max: AppSettings.maxFontScale,
-          onScalePreview: settings.previewReadingFontScale,
-          onScaleCommit: settings.commitReadingFontScale,
-          child: ScrollablePositionedList.builder(
-            itemScrollController: _itemScrollController,
-            scrollOffsetController: _offsetController,
-            itemPositionsListener: _positionsListener,
-            initialScrollIndex: _initialIndex,
-            itemCount: kQuranPageCount,
-            itemBuilder: (context, index) => _PageView(
-              content: _repo.pageContent(index + 1),
-              palette: palette,
-              fontScale: settings.readingFontScale,
-              lineHeight: settings.lineHeight,
-              targetSurah:
-                  (index + 1 == widget.initialPage) ? widget.initialSurah : null,
-              targetAyah:
-                  (index + 1 == widget.initialPage) ? widget.initialAyah : null,
-              highlightAyah:
-                  (index + 1 == widget.initialPage) ? _highlightAyah : null,
-              targetKey: _targetKey,
+          onScalePreview: (v) => _pinchTargetScale.value = v,
+          onScaleCommit: (v) {
+            settings.setReadingFontScale(v);
+            _pinchTargetScale.value = null;
+          },
+          child: ClipRect(
+            child: ValueListenableBuilder<double?>(
+              valueListenable: _pinchTargetScale,
+              builder: (context, target, child) {
+                final base = settings.readingFontScale;
+                final factor = (target == null || base == 0) ? 1.0 : target / base;
+                return Transform.scale(
+                  scale: factor,
+                  alignment: Alignment.topCenter,
+                  filterQuality: FilterQuality.medium,
+                  child: child,
+                );
+              },
+              child: settings.readerLayout == ReaderLayout.horizontal
+                  ? _buildHorizontalPager(palette, settings)
+                  : _buildVerticalList(palette, settings),
             ),
           ),
         ),
       ),
       bottomNavigationBar: ReaderFooter(page: _currentPage, wird: wird),
+    );
+  }
+
+  Widget _buildVerticalList(ReaderPalette palette, AppSettings settings) {
+    return ScrollablePositionedList.builder(
+      itemScrollController: _itemScrollController,
+      scrollOffsetController: _offsetController,
+      itemPositionsListener: _positionsListener,
+      initialScrollIndex: _initialIndex,
+      itemCount: kQuranPageCount,
+      itemBuilder: (context, index) => _pageItem(index, palette, settings),
+    );
+  }
+
+  /// One full mushaf page per swipe. Each page is wrapped in its own
+  /// [SingleChildScrollView] because [PageView] gives every page tight,
+  /// viewport-sized constraints — a page whose content is taller than the
+  /// screen (e.g. at a larger font scale) needs to scroll internally. That
+  /// inner scroll is a different axis than the pager's own drag, so there's
+  /// no gesture-arena conflict (same reasoning as [PinchToScale]).
+  Widget _buildHorizontalPager(ReaderPalette palette, AppSettings settings) {
+    return PageView.builder(
+      controller: _pageController,
+      itemCount: kQuranPageCount,
+      onPageChanged: _onPageChanged,
+      itemBuilder: (context, index) => SingleChildScrollView(
+        child: _pageItem(index, palette, settings),
+      ),
+    );
+  }
+
+  Widget _pageItem(int index, ReaderPalette palette, AppSettings settings) {
+    return _PageView(
+      content: _repo.pageContent(index + 1),
+      palette: palette,
+      fontScale: settings.readingFontScale,
+      lineHeight: settings.lineHeight,
+      targetSurah:
+          (index + 1 == widget.initialPage) ? widget.initialSurah : null,
+      targetAyah:
+          (index + 1 == widget.initialPage) ? widget.initialAyah : null,
+      highlightAyah:
+          (index + 1 == widget.initialPage) ? _highlightAyah : null,
+      targetKey: _targetKey,
     );
   }
 }
@@ -593,60 +696,6 @@ class _PageView extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// AppBar control that folds A- / % / A+ into one slot.
-class _FontSizeButton extends StatelessWidget {
-  final AppSettings settings;
-  const _FontSizeButton({required this.settings});
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<void>(
-      tooltip: 'حجم الخط',
-      icon: const Icon(Icons.format_size_rounded),
-      color: AppColors.forestGreen,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      itemBuilder: (_) => [
-        PopupMenuItem<void>(
-          enabled: false,
-          child: StatefulBuilder(
-            builder: (context, setInner) {
-              void bump(double d) {
-                settings.bumpFontScale(d);
-                setInner(() {});
-              }
-
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    onPressed: () => bump(-0.1),
-                    icon: const Icon(Icons.text_decrease_rounded,
-                        color: Colors.white),
-                  ),
-                  SizedBox(
-                    width: 44,
-                    child: Text(
-                      '٪${toArabicDigits((settings.readingFontScale * 100).round())}',
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.numeric(
-                          color: AppColors.blueGreen, fontSize: 13),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => bump(0.1),
-                    icon: const Icon(Icons.text_increase_rounded,
-                        color: Colors.white),
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      ],
     );
   }
 }

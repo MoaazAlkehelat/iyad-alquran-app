@@ -3,12 +3,17 @@ import 'package:flutter/widgets.dart';
 /// Two-finger pinch that maps to a numeric [scale] (e.g. reading font scale),
 /// implemented with a raw [Listener] so it never enters the gesture arena and
 /// therefore never steals single-finger drags from a surrounding scroll view.
+///
+/// [onScalePreview] fires on every move frame with the live absolute scale;
+/// keep the handler cheap (a compositor-only transform), not a relayout.
+/// [onScaleCommit] fires once when the gesture ends, carrying the final scale —
+/// that is the moment to apply the real (relayout-triggering) change.
 class PinchToScale extends StatefulWidget {
   final double scale;
   final double min;
   final double max;
   final ValueChanged<double> onScalePreview;
-  final VoidCallback onScaleCommit;
+  final ValueChanged<double> onScaleCommit;
   final Widget child;
 
   const PinchToScale({
@@ -29,6 +34,7 @@ class _PinchToScaleState extends State<PinchToScale> {
   final Map<int, Offset> _pointers = {};
   double? _baseDistance;
   double _baseScale = 1.0;
+  double _lastScale = 1.0;
   bool _active = false;
 
   double get _distance {
@@ -41,6 +47,7 @@ class _PinchToScaleState extends State<PinchToScale> {
     if (_pointers.length == 2) {
       _baseDistance = _distance;
       _baseScale = widget.scale;
+      _lastScale = widget.scale;
       _active = true;
     }
   }
@@ -51,6 +58,7 @@ class _PinchToScaleState extends State<PinchToScale> {
     if (_active && _pointers.length == 2 && _baseDistance != null && _baseDistance! > 0) {
       final factor = _distance / _baseDistance!;
       final next = (_baseScale * factor).clamp(widget.min, widget.max);
+      _lastScale = next;
       widget.onScalePreview(next);
     }
   }
@@ -60,7 +68,7 @@ class _PinchToScaleState extends State<PinchToScale> {
     if (_pointers.length < 2 && _active) {
       _active = false;
       _baseDistance = null;
-      widget.onScaleCommit();
+      widget.onScaleCommit(_lastScale);
     }
   }
 
