@@ -95,7 +95,7 @@ class DuaScreen
                 color:
                 const Color(
                   0xFF499FA4,
-                ).withOpacity(0.2),
+                ).withValues(alpha: 0.2),
               ),
             ),
 
